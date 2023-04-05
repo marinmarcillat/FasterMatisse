@@ -1,0 +1,12 @@
+/build/
+/CloudCompare/
+/COLMAP-3.8-windows-cuda/
+/dist/
+/OpenMVS_Windows_x64/
+/main.spec
+/exiftool.exe
+/.idea/colmap_python.iml
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/vcs.xml
