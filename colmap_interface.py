@@ -5,23 +5,25 @@ import utils
 from tqdm import tqdm
 from shutil import copy
 from PyQt5 import QtCore
+import database_add_gps_from_dim2
 
 class ReconstructionThread(QtCore.QThread):
     step = QtCore.pyqtSignal(str)
     prog_val = QtCore.pyqtSignal(int)
-    nb_models = QtCore.pyqtSignal(int)
+    nb_models = QtCore.pyqtSignal(str)
     finished = QtCore.pyqtSignal()
 
     def __init__(self, image_path, project_path, colmap_path, openMVS_path, db_path, camera, vocab_tree_path,
-                           nav_path, refine = True):
+                 nav_path, options):
         super(ReconstructionThread, self).__init__()
         self.running = True
-        self.refine = refine
+        self.CPU_features, self.vocab_tree, self.seq, self.spatial, self.refine, self.matching_neighbors = options
         self.R = Reconstruction(image_path, project_path, colmap_path, openMVS_path, db_path, camera, vocab_tree_path,
-                           nav_path)
+                                nav_path)
 
     def run(self):
-        self.R.sparse_reconstruction(10, self)
+        self.R.sparse_reconstruction(self.matching_neighbors, self.CPU_features, self.vocab_tree,
+                                     self.seq, self.spatial, self)
         self.R.post_sparse_reconstruction(self)
         self.R.meshing(self.refine, self)
         self.prog_val.emit(0)
@@ -30,7 +32,8 @@ class ReconstructionThread(QtCore.QThread):
 
 
 class Reconstruction:
-    def __init__(self, image_path, project_path, colmap_path, openMVS_path, db_path, camera_path, vocab_tree_path, nav_path):
+    def __init__(self, image_path, project_path, colmap_path, openMVS_path, db_path, camera_path, vocab_tree_path,
+                 nav_path):
         self.ref_position = []
         self.list_models = None
         self.openMVS = openMVS_path
@@ -50,9 +53,10 @@ class Reconstruction:
         if not os.path.isdir(self.models_path):
             os.mkdir(self.models_path)
         if os.path.isfile(nav_path):
+            self.dim2_path = nav_path
             self.nav = utils.load_dim2(nav_path)
 
-    def extract_features(self):
+    def extract_features(self, cpu_features):
         print("Extracting features")
 
         config = configparser.ConfigParser()
@@ -62,17 +66,22 @@ class Reconstruction:
         config.set('top', 'image_path', self.image_path)
         text1 = '\n'.join(['='.join(item) for item in config.items('top')])
         text2 = '\n'.join(['='.join(item) for item in config.items('ImageReader')])
-        text = text1+'\n[ImageReader]\n'+text2
+        text = text1 + '\n[ImageReader]\n' + text2
         with open(self.camera_path, 'w') as config_file:
             config_file.write(text)
 
-        command = [
-            self.colmap, "feature_extractor",
-            "--project_path", self.camera_path
-        ]
+        if cpu_features:
+            command = [
+            ]
+            print("Not implemented yet")
+        else:
+            command = [
+                self.colmap, "feature_extractor",
+                "--project_path", self.camera_path
+            ]
         utils.run_cmd(command)
 
-    def match_features(self, num_nearest_neighbors=10, vocab = True, seq = True, spatial = True, transitive = True):
+    def match_features(self, num_nearest_neighbors=10, vocab=True, seq=True, spatial=True):
         print("Matching features...")
         if vocab:
             print(" Vocabulary tree matching")
@@ -98,17 +107,16 @@ class Reconstruction:
             command = [
                 self.colmap, "spatial_matcher",
                 "--database_path", self.db_path,
-                "--SpatialMatching.max_distance", 10,
+                "--SpatialMatching.max_distance", str(10),
                 "--SiftMatching.guided_matching", str(1),
             ]
             utils.run_cmd(command)
-        if transitive:
-            print(" Transitive matching")
-            command = [
-                self.colmap, "transitive_matcher",
-                "--database_path", self.db_path
-            ]
-            utils.run_cmd(command)
+        print(" Transitive matching")
+        command = [
+            self.colmap, "transitive_matcher",
+            "--database_path", self.db_path
+        ]
+        utils.run_cmd(command)
 
     def hierarchical_mapper(self):
         print("Hierarchical mapping...")
@@ -181,7 +189,6 @@ class Reconstruction:
         utils.run_cmd(command)
         copy(os.path.join(model_path, 'reference_position.txt'), os.path.join(output_path, 'reference_position.txt'))
 
-
     def interface_openMVS(self, model_path):
         command = [
             os.path.join(self.openMVS, 'InterfaceCOLMAP.exe'),
@@ -219,7 +226,7 @@ class Reconstruction:
         ]
         utils.run_cmd(command)
 
-    def texture_mesh(self, model_path, ):
+    def texture_mesh(self, model_path):
         mesh_path = os.path.join(model_path, "mesh_refined.mvs")
         if not os.path.isfile(mesh_path):
             mesh_path = os.path.join(model_path, "mesh.mvs")
@@ -243,9 +250,9 @@ class Reconstruction:
 
     def group_models(self, list_models):
         model_ref = list_models[0]
-        pos_ref = utils.read_reference(os.path.join(self.models_path, model_ref,"reference_position.txt"))
+        pos_ref = utils.read_reference(os.path.join(self.models_path, model_ref, "reference_position.txt"))
         model_list = [os.path.join(self.models_path, model_ref, "textured_mesh.ply")]
-        offset_list = [(0,0,0)]
+        offset_list = [(0, 0, 0)]
         for model in tqdm(list_models[1:]):
             model_list.append(os.path.join(self.models_path, model, "textured_mesh.ply"))
 
@@ -255,19 +262,19 @@ class Reconstruction:
         import CC_utils
         CC_utils.merge_models(model_list, offset_list, os.path.join(self.project_path, "export_merged.ply"))
 
-    def sparse_reconstruction(self, param_feature_matching, thread = None):
-        utils.set_all_exifs(self.image_path,self.nav)
+    def sparse_reconstruction(self, param_feature_matching,  cpu_features, vc, seq, spatial, thread=None):
         if thread is not None:
             thread.step.emit('extraction')
-        self.extract_features()
+        self.extract_features(cpu_features)
+        database_add_gps_from_dim2.add_nav_to_database(self.db_path, self.dim2_path, self.image_path)
         if thread is not None:
             thread.step.emit('matching')
-        self.match_features(param_feature_matching)
+        self.match_features(param_feature_matching, vc, seq, spatial)
         if thread is not None:
             thread.step.emit('mapping')
         self.hierarchical_mapper()
 
-    def post_sparse_reconstruction(self, thread = None):
+    def post_sparse_reconstruction(self, thread=None):
         list_models = next(os.walk(self.sparse_model_path))[1]
         prog = 0
         tot_len = len(list_models)
@@ -294,7 +301,7 @@ class Reconstruction:
             self.undistort_images(sparse_model_path, dense_model_path)
             self.interface_openMVS(dense_model_path)
 
-    def meshing(self, refine = True, thread = None):
+    def meshing(self, refine=True, thread=None):
         list_models = next(os.walk(self.models_path))[1]
         prog = 0
         tot_len = len(list_models)
@@ -326,11 +333,3 @@ class Reconstruction:
             if thread is not None:
                 thread.step.emit('merge')
             self.group_models(list_models)
-
-    def run_reconstruction(self):
-        self.sparse_reconstruction(10)
-        self.post_sparse_reconstruction()
-        self.meshing()
-
-
-

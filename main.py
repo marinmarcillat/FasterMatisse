@@ -96,10 +96,17 @@ class Window(QMainWindow, Ui_MainWindow):
         nav_path = self.nav_file.text()
         vocab_tree_path = self.vocab_tree.text()
         camera = self.camera_config.text()
+
+        CPU_features = self.CPU_features.isChecked()
+        vocab_tree = self.vocab_tree_cb.isChecked()
+        seq = self.sequential_cb.isChecked()
+        spatial = self.spatial_cb.isChecked()
         refine = self.refine.isChecked()
+        matching_neighbors = int(self.num_neighbors.text())
+        options = [CPU_features, vocab_tree, seq, spatial, refine, matching_neighbors]
 
         self.reconstruction_thread = ReconstructionThread(image_path, project_path, colmap_path, openMVS_path, db_path, camera, vocab_tree_path,
-                           nav_path, refine)
+                           nav_path, options)
         self.reconstruction_thread.prog_val.connect(self.set_prog)
         self.reconstruction_thread.step.connect(self.set_step)
         self.reconstruction_thread.nb_models.connect(self.set_nb_models)
