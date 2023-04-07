@@ -6,6 +6,9 @@ from tqdm import tqdm
 from shutil import copy
 from PyQt5 import QtCore
 import database_add_gps_from_dim2
+import colmap_write_kml_from_database
+import json
+
 
 class ReconstructionThread(QtCore.QThread):
     step = QtCore.pyqtSignal(str)
@@ -58,27 +61,33 @@ class Reconstruction:
 
     def extract_features(self, cpu_features):
         print("Extracting features")
+        config_path = os.path.join(self.project_path, 'extract_features.ini')
 
         config = configparser.ConfigParser()
-        with open(self.camera_path) as stream:
-            config.read_string("[top]\n" + stream.read())
+        config.read(self.camera_path)
+        config.add_section('top')
+        config.add_section('SiftExtraction')
         config.set('top', 'database_path', self.db_path)
         config.set('top', 'image_path', self.image_path)
-        text1 = '\n'.join(['='.join(item) for item in config.items('top')])
-        text2 = '\n'.join(['='.join(item) for item in config.items('ImageReader')])
-        text = text1 + '\n[ImageReader]\n' + text2
-        with open(self.camera_path, 'w') as config_file:
-            config_file.write(text)
+        config.set('ImageReader', 'single_camera', str(1))
+        config.set('SiftExtraction', 'edge_threshold', str(20))
+        config.set('SiftExtraction', 'peak_threshold', str(0.0033))
 
         if cpu_features:
-            command = [
-            ]
-            print("Not implemented yet")
-        else:
-            command = [
-                self.colmap, "feature_extractor",
-                "--project_path", self.camera_path
-            ]
+            config.set('SiftExtraction', 'estimate_affine_shape', str(1))
+            config.set('SiftExtraction', 'domain_size_pooling', str(1))
+
+        text1 = '\n'.join(['='.join(item) for item in config.items('top')])
+        text2 = '\n'.join(['='.join(item) for item in config.items('ImageReader')])
+        text3 = '\n'.join(['='.join(item) for item in config.items('SiftExtraction')])
+        text = text1 + '\n[ImageReader]\n' + text2 + '\n[SiftExtraction]\n' + text3
+        with open(config_path, 'w') as config_file:
+            config_file.write(text)
+
+        command = [
+            self.colmap, "feature_extractor",
+            "--project_path", config_path
+        ]
         utils.run_cmd(command)
 
     def match_features(self, num_nearest_neighbors=10, vocab=True, seq=True, spatial=True):
@@ -107,7 +116,10 @@ class Reconstruction:
             command = [
                 self.colmap, "spatial_matcher",
                 "--database_path", self.db_path,
+                "--SiftMatching.min_inlier_ratio", str(0.2),
+                "--SpatialMatching.ignore_z", str(0),
                 "--SpatialMatching.max_distance", str(10),
+                "--SpatialMatching.max_num_neighbors", str(64),
                 "--SiftMatching.guided_matching", str(1),
             ]
             utils.run_cmd(command)
@@ -125,6 +137,17 @@ class Reconstruction:
             "--output_path", self.sparse_model_path,
             "--database_path", self.db_path,
             "--image_path", self.image_path,
+        ]
+        utils.run_cmd(command)
+
+    def model_aligner(self, model_path):
+        command = [
+            self.colmap, "model_sfm_gps_aligner",
+            "--input_path", model_path,
+            "--output_path", model_path,
+            "--database_path", self.db_path,
+            "--ref_is_gps", str(1),
+            "--alignment_type,", "enu",
         ]
         utils.run_cmd(command)
 
@@ -193,9 +216,10 @@ class Reconstruction:
         command = [
             os.path.join(self.openMVS, 'InterfaceCOLMAP.exe'),
             model_path,
+            "-w", model_path,
             "-o", os.path.join(model_path, "model.mvs"),
             "--image-folder", os.path.join(model_path, "images"),
-            "-v", str(0),
+
         ]
         utils.run_cmd(command)
 
@@ -248,6 +272,16 @@ class Reconstruction:
         ]
         utils.run_cmd(command)
 
+    def get_images_poses(self, list_offset):
+        list_models = next(os.walk(self.sparse_model_path))[1]
+        list_poses = {}
+        for id, model in tqdm(enumerate(list_models)):
+            list_poses |= utils.read_images_text(os.path.join(self.sparse_model_path, model, "images.txt"), list_offset[id])
+        camera = utils.read_cameras_text(os.path.join(self.sparse_model_path, list_models[0], "cameras.txt"))
+
+        return list_poses, camera
+
+
     def group_models(self, list_models):
         model_ref = list_models[0]
         pos_ref = utils.read_reference(os.path.join(self.models_path, model_ref, "reference_position.txt"))
@@ -261,8 +295,10 @@ class Reconstruction:
             offset_list.append(offset)
         import CC_utils
         CC_utils.merge_models(model_list, offset_list, os.path.join(self.project_path, "export_merged.ply"))
+        copy(os.path.join(self.models_path, model_ref, "reference_position.txt"),
+             os.path.join(self.project_path, "reference_position.txt"))
 
-    def sparse_reconstruction(self, param_feature_matching,  cpu_features, vc, seq, spatial, thread=None):
+    def sparse_reconstruction(self, param_feature_matching, cpu_features, vc, seq, spatial, thread=None):
         if thread is not None:
             thread.step.emit('extraction')
         self.extract_features(cpu_features)
@@ -294,10 +330,11 @@ class Reconstruction:
 
             if thread is not None:
                 thread.step.emit('georegistration')
+            #self.convert_model(sparse_model_path)
+            #self.geo_registration(sparse_model_path)
+            self.model_aligner(sparse_model_path)
             self.convert_model(sparse_model_path)
             self.get_georegistration_file(sparse_model_path)
-            self.geo_registration(sparse_model_path)
-            self.convert_model(sparse_model_path)
             self.undistort_images(sparse_model_path, dense_model_path)
             self.interface_openMVS(dense_model_path)
 
@@ -332,4 +369,24 @@ class Reconstruction:
         if len(list_models) != 1:
             if thread is not None:
                 thread.step.emit('merge')
-            self.group_models(list_models)
+            offset_list = self.group_models(list_models)
+        else:
+            copy(os.path.join(self.models_path, list_models[0], "textured_mesh.ply"),
+                 os.path.join(self.project_path, "export_merged.ply"))
+            copy(os.path.join(self.models_path, list_models[0], "textured_mesh.png"),
+                 os.path.join(self.project_path, "export_merged.png"))
+            copy(os.path.join(self.models_path, list_models[0], "reference_position.txt"),
+                 os.path.join(self.project_path, "reference_position.txt"))
+            offset_list = [[0, 0, 0]]
+
+        list_poses, cameras = self.get_images_poses(offset_list)
+        sfm = utils.listposes2sfm(list_poses, cameras)
+        with open(os.path.join(self.project_path, "sfm_data_temp.json"), 'w') as fp:
+            json.dump(sfm, fp, sort_keys=True, indent=4)
+
+        lat, long, alt = utils.read_reference(os.path.join(self.project_path, "reference_position.txt"))
+        colmap_write_kml_from_database.write_kml_file(os.path.join(self.project_path, 'export_merged.kml'),
+                                                      os.path.join(self.project_path, 'export_merged.obj'), lat, long,
+                                                      alt)
+
+

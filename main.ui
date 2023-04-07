@@ -41,21 +41,11 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>308</width>
+             <width>280</width>
              <height>339</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_5">
-            <item>
-             <widget class="QCheckBox" name="GPS_exif">
-              <property name="text">
-               <string>Copy GPS to exif (if spatial)</string>
-              </property>
-              <property name="checked">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
             <item>
              <widget class="QCheckBox" name="CPU_features">
               <property name="text">
@@ -150,7 +140,7 @@
           <item>
            <widget class="QLabel" name="label_5">
             <property name="text">
-             <string>Database: </string>
+             <string>Database (fac.): </string>
             </property>
            </widget>
           </item>
@@ -334,7 +324,7 @@
           <item>
            <widget class="QLabel" name="label_3">
             <property name="text">
-             <string>Vocabulary tree: </string>
+             <string>Vocabulary tree (fac.): </string>
             </property>
            </widget>
           </item>

@@ -4,9 +4,11 @@ import pandas as pd
 from geopy.distance import distance
 from shutil import copy
 from tqdm import tqdm
+import numpy as np
+import collections
 
 
-def run_cmd(cmd, wait = True):
+def run_cmd(cmd, wait=True):
     pStep = subprocess.Popen(cmd)
     if wait:
         pStep.wait()
@@ -63,12 +65,172 @@ def merge_models(dir1, dir2, dir_output):
         file.write("".join(lines))
 
 
+BaseImage = collections.namedtuple(
+    "Image", ["id", "rotmat", "tvec", "camera_id", "name"])
+
+Camera = collections.namedtuple(
+    "Camera", ["id", "model", "width", "height", "params"])
+
+
+class Image(BaseImage):
+    def qvec2rotmat(self):
+        return qvec2rotmat(self.qvec)
+
+
+def qvec2rotmat(qvec):
+    return np.array([
+        [1 - 2 * qvec[2] ** 2 - 2 * qvec[3] ** 2,
+         2 * qvec[1] * qvec[2] - 2 * qvec[0] * qvec[3],
+         2 * qvec[3] * qvec[1] + 2 * qvec[0] * qvec[2]],
+        [2 * qvec[1] * qvec[2] + 2 * qvec[0] * qvec[3],
+         1 - 2 * qvec[1] ** 2 - 2 * qvec[3] ** 2,
+         2 * qvec[2] * qvec[3] - 2 * qvec[0] * qvec[1]],
+        [2 * qvec[3] * qvec[1] - 2 * qvec[0] * qvec[2],
+         2 * qvec[2] * qvec[3] + 2 * qvec[0] * qvec[1],
+         1 - 2 * qvec[1] ** 2 - 2 * qvec[2] ** 2]])
+
+
+def read_cameras_text(path):
+    """
+    see: src/base/reconstruction.cc
+        void Reconstruction::WriteCamerasText(const std::string& path)
+        void Reconstruction::ReadCamerasText(const std::string& path)
+    """
+    cameras = {}
+    with open(path, "r") as fid:
+        while True:
+            line = fid.readline()
+            if not line:
+                break
+            line = line.strip()
+            if len(line) > 0 and line[0] != "#":
+                elems = line.split()
+                camera_id = int(elems[0])
+                model = elems[1]
+                width = int(elems[2])
+                height = int(elems[3])
+                params = np.array(tuple(map(float, elems[4:]))).tolist()
+                cameras[camera_id] = Camera(id=camera_id, model=model,
+                                            width=width, height=height,
+                                            params=params)
+    return cameras
+
+
+def read_images_text(path, offset):
+    """
+    see: src/base/reconstruction.cc
+        void Reconstruction::ReadImagesText(const std::string& path)
+        void Reconstruction::WriteImagesText(const std::string& path)
+    """
+    images = {}
+    with open(path, "r") as fid:
+        while True:
+            line = fid.readline()
+            if not line:
+                break
+            line = line.strip()
+            if len(line) > 0 and line[0] != "#":
+                elems = line.split()
+                camera_id = int(elems[8])
+                image_id = int(elems[0])
+                qvec = np.array(tuple(map(float, elems[1:5])))
+                tvec = np.array(tuple(map(float, elems[5:8]))) - np.array(offset)
+                tvec = tvec.tolist()
+                rotmat = qvec2rotmat(qvec).tolist()
+                image_name = elems[9]
+                elems = fid.readline().split()
+                images[image_id] = Image(
+                    id=image_id, rotmat=rotmat, tvec=tvec,
+                    camera_id=camera_id, name=image_name)
+    return images
+
+
+def listposes2sfm(list_poses, cameras):
+    views_template = {
+        "key": 0,
+        "value": {
+            "polymorphic_id": 0,
+            "ptr_wrapper": {
+                "id": 0,
+                "data": {
+                    "local_path": "",
+                    "filename": "",
+                    "width": 0,
+                    "height": 0,
+                    "id_view": 0,
+                    "id_intrinsic": 0,
+                    "id_pose": 0
+                }
+            }
+        }
+    }
+    extrinsics_template = {
+            "key": 1,
+            "value": {
+                "rotation": [
+                ],
+                "center": []
+            }
+        }
+
+    width = cameras[1][2]
+    height = cameras[1][3]
+    fx, fy, cx, cy, k1, k2, k3, k4 = cameras[1][4]
+
+    intrinsics = {
+        "key": 0,
+        "value": {
+            "polymorphic_id": 2147483650,
+            "polymorphic_name": "pinhole_radial_k3",
+            "ptr_wrapper": {
+                "id": 2147485962,
+                "data": {
+                    "width": width,
+                    "height": height,
+                    "focal_length": (fx + fy) / 2,
+                    "principal_point": [cx, cy],
+                    "disto_k3": [k1, k2, k3]
+                }
+            }
+        }
+    }
+
+    list_extrinsics = []
+    list_views = []
+    for pose in list_poses.items():
+        _, image = pose
+        id, rot, translation, filename = image.id, image.rotmat, image.tvec, image.name
+        view = views_template.copy()
+        view['key'] = view["value"]["polymorphic_id"] = view["value"]["ptr_wrapper"]["id"] = \
+            view["value"]["ptr_wrapper"]["data"]["id_view"] = view["value"]["ptr_wrapper"]["data"]["id_pose"] = id
+        view["value"]["ptr_wrapper"]["data"]["filename"] = filename
+        view["value"]["ptr_wrapper"]["data"]["width"] = width
+        view["value"]["ptr_wrapper"]["data"]["height"] = height
+        list_views.append(view)
+
+        ext = extrinsics_template.copy()
+        ext["key"] = id
+        ext["value"]["rotation"] = rot
+        ext["value"]["center"] = translation
+        list_extrinsics.append(ext)
+
+    return {
+        "sfm_data_version": "0.3",
+        "root_path": "",
+        "intrinsics": [intrinsics],
+        "extrinsics": list_extrinsics,
+        "views": list_views,
+    }
+
+
 def set_exifs(image, pos):
     command = [
         'exiftool.exe', f'-EXIF:GPSLongitude={str(pos[1])}', f'-EXIF:GPSLatitude={str(pos[0])}',
-        f'-EXIF:GPSAltitude={str(pos[2])}', '-GPSLongitudeRef=West', '-GPSLatitudeRef=North', '-overwrite_original', '-q', image
+        f'-EXIF:GPSAltitude={str(pos[2])}', '-GPSLongitudeRef=West', '-GPSLatitudeRef=North', '-overwrite_original',
+        '-q', image
     ]
-    run_cmd(command, wait = False)
+    run_cmd(command, wait=False)
+
 
 def set_all_exifs(img_dir, nav):
     print("Setting all exifs")

@@ -60,7 +60,7 @@ class Window(QMainWindow, Ui_MainWindow):
             line.setText(dir_path)
 
     def set_nb_models(self, val):
-        self.model_nb.text(val)
+        self.model_nb.setText(val)
 
     def set_prog(self, val):
         self.active_pb.setValue(val)
@@ -83,7 +83,7 @@ class Window(QMainWindow, Ui_MainWindow):
         if step == 'dense':
             self.active_pb = self.mesh_pb
         elif step == 'georegistration':
-            self.active_pb = self.georeference_pb
+            self.active_pb = self.georeferencing_pb
 
 
     def launch_reconstruction(self):

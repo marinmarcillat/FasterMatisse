@@ -34,6 +34,7 @@
 import sys
 import sqlite3
 import numpy as np
+from tqdm import tqdm
 
 
 IS_PYTHON3 = sys.version_info[0] >= 3
@@ -266,7 +267,7 @@ def add_nav_to_database(database_path, dim2_path, img_subfolder = ""):
     img_names = []
     nav_vals = []
 
-    for line in dim2_file:
+    for line in tqdm(dim2_file):
         els = line.split(";")
 
         if img_subfolder == "":
@@ -277,16 +278,13 @@ def add_nav_to_database(database_path, dim2_path, img_subfolder = ""):
             img_names.append(img_subfolder + els[img_name_idx])
 
         nav_vals.append((float(els[lat_idx]),float(els[lon_idx]), -1.*float(els[depth_idx])))
-        print("Nav vals read for image " + img_names[-1] + " : " + str(nav_vals[-1]))
 
     dim2_file.close()
 
     # Update database.
-    for img_name, nav_val in zip(img_names, nav_vals):
+    for img_name, nav_val in tqdm(zip(img_names, nav_vals)):
         db.execute("UPDATE images SET prior_tx=?, prior_ty=?, prior_tz=? WHERE name=?;", \
                 (nav_val[0], nav_val[1], nav_val[2], img_name))
-
-        print("Updating Image " + str(img_name) + " - Tvec_prior to : " + str(nav_val) + "\n")
 
     db.commit()
 
