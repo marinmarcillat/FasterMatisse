@@ -8,6 +8,11 @@ from PyQt5 import QtCore
 import database_add_gps_from_dim2
 import colmap_write_kml_from_database
 import json
+from time import sleep
+
+
+def run_cmd(cmd):
+    p = subprocess.run(cmd, check=True)
 
 
 class ReconstructionThread(QtCore.QThread):
@@ -88,7 +93,7 @@ class Reconstruction:
             self.colmap, "feature_extractor",
             "--project_path", config_path
         ]
-        utils.run_cmd(command)
+        run_cmd(command)
 
     def match_features(self, num_nearest_neighbors=10, vocab=True, seq=True, spatial=True):
         print("Matching features...")
@@ -101,7 +106,7 @@ class Reconstruction:
                 "--VocabTreeMatching.num_nearest_neighbors", str(num_nearest_neighbors),
                 "--SiftMatching.guided_matching", str(1),
             ]
-            utils.run_cmd(command)
+            run_cmd(command)
         if seq:
             print(" Sequential matching")
             command = [
@@ -110,7 +115,7 @@ class Reconstruction:
                 "--SequentialMatching.overlap", str(num_nearest_neighbors),
                 "--SiftMatching.guided_matching", str(1),
             ]
-            utils.run_cmd(command)
+            run_cmd(command)
         if spatial:
             print(" Spatial matching")
             command = [
@@ -122,13 +127,13 @@ class Reconstruction:
                 "--SpatialMatching.max_num_neighbors", str(64),
                 "--SiftMatching.guided_matching", str(1),
             ]
-            utils.run_cmd(command)
+            run_cmd(command)
         print(" Transitive matching")
         command = [
             self.colmap, "transitive_matcher",
             "--database_path", self.db_path
         ]
-        utils.run_cmd(command)
+        run_cmd(command)
 
     def hierarchical_mapper(self):
         print("Hierarchical mapping...")
@@ -138,7 +143,7 @@ class Reconstruction:
             "--database_path", self.db_path,
             "--image_path", self.image_path,
         ]
-        utils.run_cmd(command)
+        run_cmd(command)
 
     def model_aligner(self, model_path):
         command = [
@@ -149,7 +154,7 @@ class Reconstruction:
             "--ref_is_gps", str(1),
             "--alignment_type,", "enu",
         ]
-        utils.run_cmd(command)
+        run_cmd(command)
 
     def geo_registration(self, model_path):
         if not os.path.isfile(os.path.join(model_path, 'georegist.txt')):
@@ -165,7 +170,7 @@ class Reconstruction:
             "--robust_alignment", str(1),
             "--robust_alignment_max_error", str(3.0)
         ]
-        utils.run_cmd(command)
+        run_cmd(command)
 
     def get_georegistration_file(self, model_path):
         filename = os.path.join(model_path, 'images.txt')
@@ -190,7 +195,7 @@ class Reconstruction:
             "--output_path", model_path,
             "--output_type", output_type,
         ]
-        utils.run_cmd(command)
+        run_cmd(command)
 
     def merge_model(self, model1_name, model2_name, combined_path):
         command = [
@@ -199,7 +204,7 @@ class Reconstruction:
             "--input_path2", os.path.join(self.sparse_model_path, model2_name),
             "--output_path", combined_path,
         ]
-        utils.run_cmd(command)
+        run_cmd(command)
 
     def undistort_images(self, model_path, output_path):
         command = [
@@ -209,7 +214,7 @@ class Reconstruction:
             "--output_path", output_path,
             "--output_type", "COLMAP"
         ]
-        utils.run_cmd(command)
+        run_cmd(command)
         copy(os.path.join(model_path, 'reference_position.txt'), os.path.join(output_path, 'reference_position.txt'))
 
     def interface_openMVS(self, model_path):
@@ -221,7 +226,7 @@ class Reconstruction:
             "--image-folder", os.path.join(model_path, "images"),
 
         ]
-        utils.run_cmd(command)
+        run_cmd(command)
 
     def dense_reconstruction(self, model_path):
         command = [
@@ -230,7 +235,7 @@ class Reconstruction:
             "-o", os.path.join(model_path, "dense.mvs"),
             "-w", model_path
         ]
-        utils.run_cmd(command)
+        run_cmd(command)
 
     def mesh_reconstruction(self, model_path):
         command = [
@@ -239,7 +244,7 @@ class Reconstruction:
             "-o", os.path.join(model_path, "mesh.mvs"),
             "-w", model_path
         ]
-        utils.run_cmd(command)
+        run_cmd(command)
 
     def refine_mesh(self, model_path):
         command = [
@@ -248,7 +253,7 @@ class Reconstruction:
             "-o", os.path.join(model_path, "mesh_refined.mvs"),
             "-w", model_path
         ]
-        utils.run_cmd(command)
+        run_cmd(command)
 
     def texture_mesh(self, model_path):
         mesh_path = os.path.join(model_path, "mesh_refined.mvs")
@@ -260,7 +265,7 @@ class Reconstruction:
             "-o", os.path.join(model_path, "textured_mesh.mvs"),
             "-w", model_path
         ]
-        utils.run_cmd(command)
+        run_cmd(command)
 
     def convert_mesh(self, model_path):
         command = [
@@ -270,7 +275,7 @@ class Reconstruction:
             "-w", model_path,
             "--export-type", 'obj'
         ]
-        utils.run_cmd(command)
+        run_cmd(command)
 
     def get_images_poses(self, list_offset):
         list_models = next(os.walk(self.sparse_model_path))[1]

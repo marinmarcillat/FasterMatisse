@@ -1,7 +1,7 @@
 from tqdm import tqdm
-import sys
+import sys, os
 
-CC_path = "CloudCompare"
+CC_path = os.path.join(os.path.dirname(sys.argv[0]),"CloudCompare")
 if CC_path not in sys.path:
     sys.path.append(CC_path)
 

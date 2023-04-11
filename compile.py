@@ -6,6 +6,7 @@ PyInstaller.__main__.run([
     'main.py',
     '--icon=Logo-Ifremer.ico',
     '--onefile',
+
 ], )
 
 paths = ['CloudCompare', 'COLMAP-3.8-windows-cuda', 'OpenMVS_Windows_x64']

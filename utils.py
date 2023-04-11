@@ -6,6 +6,7 @@ from shutil import copy
 from tqdm import tqdm
 import numpy as np
 import collections
+from time import sleep
 
 
 def run_cmd(cmd, wait=True):
@@ -15,6 +16,7 @@ def run_cmd(cmd, wait=True):
         if pStep.returncode != 0:
             print("Warning: step failed")
             print(f'Used command: {cmd}')
+            sleep(20)
 
 
 def load_dim2(dim2_path):

@@ -1,4 +1,4 @@
-import sys
+import sys, os
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import (
@@ -87,8 +87,8 @@ class Window(QMainWindow, Ui_MainWindow):
 
 
     def launch_reconstruction(self):
-        colmap_path = "COLMAP-3.8-windows-cuda"
-        openMVS_path = "OpenMVS_Windows_x64"
+        colmap_path = os.path.join(os.path.dirname(sys.argv[0]),"COLMAP-3.8-windows-cuda")
+        openMVS_path = os.path.join(os.path.dirname(sys.argv[0]),"OpenMVS_Windows_x64")
 
         image_path = self.image_dir.text()
         project_path = self.project_directory.text()
