@@ -103,7 +103,8 @@ class Window(QMainWindow, Ui_MainWindow):
         spatial = self.spatial_cb.isChecked()
         refine = self.refine.isChecked()
         matching_neighbors = int(self.num_neighbors.text())
-        options = [CPU_features, vocab_tree, seq, spatial, refine, matching_neighbors]
+        skip_reconstruction = self.skip_reconstruction.isChecked()
+        options = [CPU_features, vocab_tree, seq, spatial, refine, matching_neighbors, skip_reconstruction]
 
         self.reconstruction_thread = ReconstructionThread(image_path, project_path, colmap_path, openMVS_path, db_path, camera, vocab_tree_path,
                            nav_path, options)

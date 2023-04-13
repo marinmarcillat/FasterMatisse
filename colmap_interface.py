@@ -25,13 +25,14 @@ class ReconstructionThread(QtCore.QThread):
                  nav_path, options):
         super(ReconstructionThread, self).__init__()
         self.running = True
-        self.CPU_features, self.vocab_tree, self.seq, self.spatial, self.refine, self.matching_neighbors = options
+        self.CPU_features, self.vocab_tree, self.seq, self.spatial, self.refine, self.matching_neighbors, self.skip_reconstruction = options
         self.R = Reconstruction(image_path, project_path, colmap_path, openMVS_path, db_path, camera, vocab_tree_path,
                                 nav_path)
 
     def run(self):
-        self.R.sparse_reconstruction(self.matching_neighbors, self.CPU_features, self.vocab_tree,
-                                     self.seq, self.spatial, self)
+        if not self.skip_reconstruction:
+            self.R.sparse_reconstruction(self.matching_neighbors, self.CPU_features, self.vocab_tree,
+                                         self.seq, self.spatial, self)
         self.R.post_sparse_reconstruction(self)
         self.R.meshing(self.refine, self)
         self.prog_val.emit(0)
@@ -75,8 +76,8 @@ class Reconstruction:
         config.set('top', 'database_path', self.db_path)
         config.set('top', 'image_path', self.image_path)
         config.set('ImageReader', 'single_camera', str(1))
-        config.set('SiftExtraction', 'edge_threshold', str(20))
-        config.set('SiftExtraction', 'peak_threshold', str(0.0033))
+        #config.set('SiftExtraction', 'edge_threshold', str(20))
+        #config.set('SiftExtraction', 'peak_threshold', str(0.0033))
 
         if cpu_features:
             config.set('SiftExtraction', 'estimate_affine_shape', str(1))
@@ -335,11 +336,11 @@ class Reconstruction:
 
             if thread is not None:
                 thread.step.emit('georegistration')
-            #self.convert_model(sparse_model_path)
-            #self.geo_registration(sparse_model_path)
-            self.model_aligner(sparse_model_path)
             self.convert_model(sparse_model_path)
             self.get_georegistration_file(sparse_model_path)
+            self.geo_registration(sparse_model_path)
+            #self.model_aligner(sparse_model_path)
+            self.convert_model(sparse_model_path)
             self.undistort_images(sparse_model_path, dense_model_path)
             self.interface_openMVS(dense_model_path)
 

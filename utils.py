@@ -7,6 +7,7 @@ from tqdm import tqdm
 import numpy as np
 import collections
 from time import sleep
+import copy
 
 
 def run_cmd(cmd, wait=True):
@@ -202,7 +203,7 @@ def listposes2sfm(list_poses, cameras):
     for pose in list_poses.items():
         _, image = pose
         id, rot, translation, filename = image.id, image.rotmat, image.tvec, image.name
-        view = views_template.copy()
+        view = copy.deepcopy(views_template)
         view['key'] = view["value"]["polymorphic_id"] = view["value"]["ptr_wrapper"]["id"] = \
             view["value"]["ptr_wrapper"]["data"]["id_view"] = view["value"]["ptr_wrapper"]["data"]["id_pose"] = id
         view["value"]["ptr_wrapper"]["data"]["filename"] = filename
@@ -210,7 +211,7 @@ def listposes2sfm(list_poses, cameras):
         view["value"]["ptr_wrapper"]["data"]["height"] = height
         list_views.append(view)
 
-        ext = extrinsics_template.copy()
+        ext = copy.deepcopy(extrinsics_template)
         ext["key"] = id
         ext["value"]["rotation"] = rot
         ext["value"]["center"] = translation
