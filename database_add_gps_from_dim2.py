@@ -124,10 +124,7 @@ def pair_id_to_image_ids(pair_id):
 
 
 def array_to_blob(array):
-    if IS_PYTHON3:
-        return array.tostring()
-    else:
-        return np.getbuffer(array)
+    return array.tostring() if IS_PYTHON3 else np.getbuffer(array)
 
 
 def blob_to_array(blob, dtype, shape=(-1,)):
@@ -238,7 +235,7 @@ def add_nav_to_database(database_path, dim2_path, img_subfolder = ""):
     #     print(row)
 
     # # rows = cursor.execute("SELECT * FROM cameras;")
-    
+
     # # camera_id, model, width, height, params, prior = next(rows)
     # # params = blob_to_array(params, np.float64)
     # # print(params)
@@ -261,25 +258,21 @@ def add_nav_to_database(database_path, dim2_path, img_subfolder = ""):
         print("ASSUMING NMEA FILE!!!")
         exit(-1)
 
-    # Read Nav values from dim2.
-    dim2_file = open(dim2_path, 'r')
+    with open(dim2_path, 'r') as dim2_file:
+        img_names = []
+        nav_vals = []
 
-    img_names = []
-    nav_vals = []
+        for line in tqdm(dim2_file):
+            els = line.split(";")
 
-    for line in tqdm(dim2_file):
-        els = line.split(";")
+            if img_subfolder == "":
+                img_names.append(els[img_name_idx])
+            else:
+                if img_subfolder[-1] != "/":
+                    img_subfolder += "/"
+                img_names.append(img_subfolder + els[img_name_idx])
 
-        if img_subfolder == "":
-            img_names.append(els[img_name_idx])
-        else:
-            if img_subfolder[-1] != "/":
-                img_subfolder += "/"
-            img_names.append(img_subfolder + els[img_name_idx])
-
-        nav_vals.append((float(els[lat_idx]),float(els[lon_idx]), -1.*float(els[depth_idx])))
-
-    dim2_file.close()
+            nav_vals.append((float(els[lat_idx]),float(els[lon_idx]), -1.*float(els[depth_idx])))
 
     # Update database.
     for img_name, nav_val in tqdm(zip(img_names, nav_vals)):

@@ -220,6 +220,7 @@ def listposes2sfm(list_poses, cameras):
     return {
         "sfm_data_version": "0.3",
         "root_path": "",
+        "structure": [],
         "intrinsics": [intrinsics],
         "extrinsics": list_extrinsics,
         "views": list_views,
