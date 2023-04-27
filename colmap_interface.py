@@ -10,9 +10,6 @@ import colmap_write_kml_from_database
 import json
 
 
-def insens_space(s):
-    return '"' + s + '"'
-
 def run_cmd(cmd):
     p = subprocess.run(cmd, check=True)
 
@@ -104,8 +101,8 @@ class Reconstruction:
             print(" Vocabulary tree matching")
             command = [
                 self.colmap, "vocab_tree_matcher",
-                "--VocabTreeMatching.vocab_tree_path", insens_space(self.vocab_tree_path),
-                "--database_path", insens_space(self.db_path),
+                "--VocabTreeMatching.vocab_tree_path", self.vocab_tree_path,
+                "--database_path", self.db_path,
                 "--VocabTreeMatching.num_nearest_neighbors", str(num_nearest_neighbors),
                 "--SiftMatching.guided_matching", str(1),
             ]
@@ -114,7 +111,7 @@ class Reconstruction:
             print(" Sequential matching")
             command = [
                 self.colmap, "sequential_matcher",
-                "--database_path", insens_space(self.db_path),
+                "--database_path", self.db_path,
                 "--SequentialMatching.overlap", str(num_nearest_neighbors),
                 "--SiftMatching.guided_matching", str(1),
             ]
@@ -123,7 +120,7 @@ class Reconstruction:
             print(" Spatial matching")
             command = [
                 self.colmap, "spatial_matcher",
-                "--database_path", insens_space(self.db_path),
+                "--database_path", self.db_path,
                 "--SiftMatching.min_inlier_ratio", str(0.2),
                 "--SpatialMatching.ignore_z", str(0),
                 "--SpatialMatching.max_distance", str(10),
@@ -134,7 +131,7 @@ class Reconstruction:
         print(" Transitive matching")
         command = [
             self.colmap, "transitive_matcher",
-            "--database_path", insens_space(self.db_path)
+            "--database_path", self.db_path
         ]
         run_cmd(command)
 
@@ -142,9 +139,9 @@ class Reconstruction:
         print("Hierarchical mapping...")
         command = [
             self.colmap, "hierarchical_mapper",
-            "--output_path", insens_space(self.sparse_model_path),
-            "--database_path", insens_space(self.db_path),
-            "--image_path", insens_space(self.image_path),
+            "--output_path", self.sparse_model_path,
+            "--database_path", self.db_path,
+            "--image_path", self.image_path,
             "--Mapper.tri_ignore_two_view_tracks", str(0),
         ]
         run_cmd(command)
@@ -152,9 +149,9 @@ class Reconstruction:
     def model_aligner(self, model_path):
         command = [
             self.colmap, "model_sfm_gps_aligner",
-            "--input_path", insens_space(model_path),
-            "--output_path", insens_space(model_path),
-            "--database_path", insens_space(self.db_path),
+            "--input_path", model_path,
+            "--output_path", model_path,
+            "--database_path", self.db_path,
             "--ref_is_gps", str(1),
             "--alignment_type,", "enu",
         ]
@@ -166,9 +163,9 @@ class Reconstruction:
             return 0
         command = [
             self.colmap, "model_aligner",
-            "--input_path", insens_space(model_path),
-            "--ref_images_path", insens_space(os.path.join(model_path, 'georegist.txt')),
-            "--output_path", insens_space(model_path),
+            "--input_path", model_path,
+            "--ref_images_path", os.path.join(model_path, 'georegist.txt'),
+            "--output_path", model_path,
             "--ref_is_gps", str(1),
             "--alignment_type", 'enu',
             "--robust_alignment", str(1),
@@ -195,27 +192,27 @@ class Reconstruction:
     def convert_model(self, model_path, output_type='TXT'):
         command = [
             self.colmap, "model_converter",
-            "--input_path", insens_space(model_path),
-            "--output_path", insens_space(model_path),
-            "--output_type", insens_space(output_type),
+            "--input_path", model_path,
+            "--output_path", model_path,
+            "--output_type", output_type,
         ]
         run_cmd(command)
 
     def merge_model(self, model1_name, model2_name, combined_path):
         command = [
             self.colmap, "model_merger",
-            "--input_path1", insens_space(os.path.join(self.sparse_model_path, model1_name)),
-            "--input_path2", insens_space(os.path.join(self.sparse_model_path, model2_name)),
-            "--output_path", insens_space(combined_path),
+            "--input_path1", os.path.join(self.sparse_model_path, model1_name),
+            "--input_path2", os.path.join(self.sparse_model_path, model2_name),
+            "--output_path", combined_path,
         ]
         run_cmd(command)
 
     def undistort_images(self, model_path, output_path):
         command = [
             self.colmap, "image_undistorter",
-            "--image_path", insens_space(self.image_path),
-            "--input_path", insens_space(model_path),
-            "--output_path", insens_space(output_path),
+            "--image_path", self.image_path,
+            "--input_path", model_path,
+            "--output_path", output_path,
             "--output_type", "COLMAP"
         ]
         run_cmd(command)
@@ -225,9 +222,9 @@ class Reconstruction:
         command = [
             os.path.join(self.openMVS, 'InterfaceCOLMAP.exe'),
             model_path,
-            "-w", insens_space(model_path),
-            "-o", insens_space(os.path.join(model_path, "model.mvs")),
-            "--image-folder", insens_space(os.path.join(model_path, "images")),
+            "-w", model_path,
+            "-o", os.path.join(model_path, "model.mvs"),
+            "--image-folder", os.path.join(model_path, "images"),
 
         ]
         run_cmd(command)
@@ -235,27 +232,27 @@ class Reconstruction:
     def dense_reconstruction(self, model_path):
         command = [
             os.path.join(self.openMVS, 'DensifyPointCloud.exe'),
-            "-i", insens_space(os.path.join(model_path, "model.mvs")),
-            "-o", insens_space(os.path.join(model_path, "dense.mvs")),
-            "-w", insens_space(model_path)
+            "-i", os.path.join(model_path, "model.mvs"),
+            "-o", os.path.join(model_path, "dense.mvs"),
+            "-w", model_path
         ]
         run_cmd(command)
 
     def mesh_reconstruction(self, model_path):
         command = [
             os.path.join(self.openMVS, 'ReconstructMesh.exe'),
-            "-i", insens_space(os.path.join(model_path, "dense.mvs")),
-            "-o", insens_space(os.path.join(model_path, "mesh.mvs")),
-            "-w", insens_space(model_path)
+            "-i", os.path.join(model_path, "dense.mvs"),
+            "-o", os.path.join(model_path, "mesh.mvs"),
+            "-w", model_path
         ]
         run_cmd(command)
 
     def refine_mesh(self, model_path):
         command = [
             os.path.join(self.openMVS, 'RefineMesh.exe'),
-            "-i", insens_space(os.path.join(model_path, "mesh.mvs")),
-            "-o", insens_space(os.path.join(model_path, "mesh_refined.mvs")),
-            "-w", insens_space(model_path)
+            "-i", os.path.join(model_path, "mesh.mvs"),
+            "-o", os.path.join(model_path, "mesh_refined.mvs"),
+            "-w", model_path
         ]
         run_cmd(command)
 
@@ -265,18 +262,18 @@ class Reconstruction:
             mesh_path = os.path.join(model_path, "mesh.mvs")
         command = [
             os.path.join(self.openMVS, 'TextureMesh.exe'),
-            "-i", insens_space(mesh_path),
-            "-o", insens_space(os.path.join(model_path, "textured_mesh.mvs")),
-            "-w", insens_space(model_path)
+            "-i", mesh_path,
+            "-o", os.path.join(model_path, "textured_mesh.mvs"),
+            "-w", model_path
         ]
         run_cmd(command)
 
     def convert_mesh(self, model_path):
         command = [
             os.path.join(self.openMVS, 'Viewer.exe'),
-            "-i", insens_space(os.path.join(model_path, "textured_mesh.mvs")),
-            "-o", insens_space(os.path.join(model_path, "textured_mesh.obj")),
-            "-w", insens_space(model_path),
+            "-i", os.path.join(model_path, "textured_mesh.mvs"),
+            "-o", os.path.join(model_path, "textured_mesh.obj"),
+            "-w", model_path,
             "--export-type", 'obj'
         ]
         run_cmd(command)
@@ -375,9 +372,10 @@ class Reconstruction:
             if thread is not None:
                 thread.step.emit('texture')
             self.texture_mesh(dense_model_path)
+
+        if thread is not None:
+            thread.step.emit('merge')
         if len(list_models) != 1:
-            if thread is not None:
-                thread.step.emit('merge')
             offset_list = self.group_models(list_models)
         else:
             copy(os.path.join(self.models_path, list_models[0], "textured_mesh.ply"),
