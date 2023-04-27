@@ -11,7 +11,7 @@ import json
 
 
 def insens_space(s):
-    return '"' + str + '"'
+    return '"' + s + '"'
 
 def run_cmd(cmd):
     p = subprocess.run(cmd, check=True)
