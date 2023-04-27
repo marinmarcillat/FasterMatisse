@@ -381,7 +381,7 @@ class Reconstruction:
             copy(os.path.join(self.models_path, list_models[0], "textured_mesh.ply"),
                  os.path.join(self.project_path, "export_merged.ply"))
             copy(os.path.join(self.models_path, list_models[0], "textured_mesh.png"),
-                 os.path.join(self.project_path, "export_merged.png"))
+                 os.path.join(self.project_path, "textured_mesh.png"))
             copy(os.path.join(self.models_path, list_models[0], "reference_position.txt"),
                  os.path.join(self.project_path, "reference_position.txt"))
             offset_list = [[0, 0, 0]]
