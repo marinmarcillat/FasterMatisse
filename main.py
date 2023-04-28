@@ -74,7 +74,8 @@ class Window(QMainWindow, Ui_MainWindow):
             'dense' : self.dense_reconstruction,
             'mesh' : self.mesh_reconstruction,
             'refinement': self.mesh_refinement,
-            'texture': self.mesh_texturing
+            'texture': self.mesh_texturing,
+            'merge': self.merging_mesh
         }
         for key in label_dict:
             label_dict[key].setStyleSheet("QLabel {color : black; font-weight: roman}")

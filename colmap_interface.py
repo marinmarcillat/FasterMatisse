@@ -142,7 +142,6 @@ class Reconstruction:
             "--output_path", self.sparse_model_path,
             "--database_path", self.db_path,
             "--image_path", self.image_path,
-            "--Mapper.tri_ignore_two_view_tracks", str(0),
         ]
         run_cmd(command)
 
