@@ -391,6 +391,4 @@ class Reconstruction:
             json.dump(sfm, fp, sort_keys=True, indent=4)
 
         lat, long, alt = utils.read_reference(os.path.join(self.project_path, "reference_position.txt"))
-        colmap_write_kml_from_database.write_kml_file(os.path.join(self.project_path, 'export_merged.kml'),
-                                                      os.path.join(self.project_path, 'export_merged.obj'), lat, long,
-                                                      alt)
+        colmap_write_kml_from_database.write_kml_file('export_merged.kml', 'export_merged.ply', lat, long, alt)

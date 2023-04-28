@@ -276,7 +276,7 @@ def write_kml_file(out_file_path, obj_file_name, lat, lon, alt):
     lines += "        <z>1</z>" + "\n"
     lines += "      </Scale>" + "\n"
     lines += "      <Link>" + "\n"
-    lines += "        <href>" + obj_file_name + ".obj" + "</href>" + "\n"
+    lines += "        <href>" + obj_file_name + "</href>" + "\n"
     lines += "      </Link>" + "\n"
     lines += "    </Model>" + "\n"
     lines += "  </Placemark>" + "\n"
