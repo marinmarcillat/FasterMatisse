@@ -75,8 +75,8 @@ class Reconstruction:
         config.set('top', 'database_path', self.db_path)
         config.set('top', 'image_path', self.image_path)
         config.set('ImageReader', 'single_camera', str(1))
-        #config.set('SiftExtraction', 'edge_threshold', str(20))
-        #config.set('SiftExtraction', 'peak_threshold', str(0.0033))
+        # config.set('SiftExtraction', 'edge_threshold', str(20))
+        # config.set('SiftExtraction', 'peak_threshold', str(0.0033))
 
         if cpu_features:
             config.set('SiftExtraction', 'estimate_affine_shape', str(1))
@@ -281,11 +281,11 @@ class Reconstruction:
         list_models = next(os.walk(self.sparse_model_path))[1]
         list_poses = {}
         for id, model in tqdm(enumerate(list_models)):
-            list_poses |= utils.read_images_text(os.path.join(self.sparse_model_path, model, "images.txt"), list_offset[id])
+            list_poses |= utils.read_images_text(os.path.join(self.sparse_model_path, model, "images.txt"),
+                                                 list_offset[id])
         camera = utils.read_cameras_text(os.path.join(self.sparse_model_path, list_models[0], "cameras.txt"))
 
         return list_poses, camera
-
 
     def group_models(self, list_models):
         model_ref = list_models[0]
@@ -338,7 +338,7 @@ class Reconstruction:
             self.convert_model(sparse_model_path)
             self.get_georegistration_file(sparse_model_path)
             self.geo_registration(sparse_model_path)
-            #self.model_aligner(sparse_model_path)
+            # self.model_aligner(sparse_model_path)
             self.convert_model(sparse_model_path)
             self.undistort_images(sparse_model_path, dense_model_path)
             self.interface_openMVS(dense_model_path)
@@ -394,5 +394,3 @@ class Reconstruction:
         colmap_write_kml_from_database.write_kml_file(os.path.join(self.project_path, 'export_merged.kml'),
                                                       os.path.join(self.project_path, 'export_merged.obj'), lat, long,
                                                       alt)
-
-
