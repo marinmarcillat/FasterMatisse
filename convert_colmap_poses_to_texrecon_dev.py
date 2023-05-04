@@ -207,37 +207,30 @@ def read_images_binary(path_to_model_file, cam_idx=1):
                 xys=xys, point3D_ids=point3D_ids)
     return images
 
-
-if __name__ == "__main__":
-    
-    if len(sys.argv) < 3:
-        print("Usage: python convert_colmap_poses_to_texrecon.py colmap_sparse_dir/ images_dir/")
-        exit(-1)
-
-    colmap_path = sys.argv[1]
+def colmap2texrecon(colmap_path, images_path):
     if colmap_path[-1] != "/":
-        colmap_path = colmap_path + "/"
+        colmap_path = f"{colmap_path}/"
 
-    images_path = sys.argv[2]
     if images_path == ".":
         images_path = ""
     elif images_path[-1] != "/":
         images_path = images_path + "/"
 
-    print("Going to extract colmap results from dir : " + colmap_path)
-    print("Going to write .cam  files into dir : " + images_path)
+    print(f"Going to extract colmap results from dir : {colmap_path}")
+    print(f"Going to write .cam  files into dir : {images_path}")
+
 
     suffix = ".bin"
 
     colmap_files = glob.glob(colmap_path + "*.bin")
 
-    if len(colmap_files) == 0:
+    if not colmap_files:
         suffix = ".txt"
-        if len(glob.glob(colmap_path + "*.txt")) == 0:
-            print("ERROR! No files in " + colmap_path)
+        if not glob.glob(f"{colmap_path}*.txt"):
+            print(f"ERROR! No files in {colmap_path}")
             exit(-1)
 
-    cameras_calib = read_cameras_text(colmap_path + "cameras" + suffix)
+    cameras_calib = read_cameras_text(f"{colmap_path}cameras{suffix}")
 
     calib_lines = {}
     for _, calib in cameras_calib.items():
@@ -254,58 +247,61 @@ if __name__ == "__main__":
 
         pixel_ratio = fy / fx
 
-        dim_aspect = w / h                                                                                                                                                            
-        img_aspect = dim_aspect * pixel_ratio                                                                                                                                                 
+        dim_aspect = w / h
+        img_aspect = dim_aspect * pixel_ratio
 
-        f =  fx / w                                                                                                                                                                                           
-        if img_aspect < 1.0:                                                                                                                                                                   
-            f = fy / h                            
+        f = fx / w
+        if img_aspect < 1.0:
+            f = fy / h
 
         cx /= w
         cy /= h
 
-        calib_lines[calib.id] = str(f) + " 0 0 " + str(pixel_ratio) + " " + str(cx) + " " + str(cy) + "\n"
+        calib_lines[calib.id] = (
+            f"{str(f)} 0 0 {str(pixel_ratio)} {str(cx)} {str(cy)}" + "\n"
+        )
 
     print("Cameras calibration is : \n" + str(calib_lines))
+
 
     colmap_images = read_images_text(colmap_path + "images" + suffix)
 
     print("Results to be stored in dir : " + images_path)
 
+
     CAM_PREFIX = images_path
     CAM_SUFFIX = ".cam"
 
     for _, colmap_image in tqdm.tqdm(colmap_images.items()):
-
         # Extract Tcw (world -> cam)
-        R = colmap_image.qvec2rotmat().reshape(3,3)
+        R = colmap_image.qvec2rotmat().reshape(3, 3)
         tcw = colmap_image.tvec
-        
+
         img_name = colmap_image.name.split(".")[:-1]
         img_name = ".".join(img_name)
-        
+
         out_file_path = CAM_PREFIX + img_name + CAM_SUFFIX
 
-        out_file = open(out_file_path,'w')
+        with open(out_file_path, 'w') as out_file:
+            out_line = str(tcw[0]) + " " \
+                       + str(tcw[1]) + " " \
+                       + str(tcw[2]) + " " \
+                       + str(R[0, 0]) + " " \
+                       + str(R[0, 1]) + " " \
+                       + str(R[0, 2]) + " " \
+                       + str(R[1, 0]) + " " \
+                       + str(R[1, 1]) + " " \
+                       + str(R[1, 2]) + " " \
+                       + str(R[2, 0]) + " " \
+                       + str(R[2, 1]) + " " \
+                       + str(R[2, 2]) + "\n"
 
-        out_line = str(tcw[0]) + " " \
-                 + str(tcw[1]) + " " \
-                 + str(tcw[2]) + " " \
-                 + str(R[0,0]) + " " \
-                 + str(R[0,1]) + " " \
-                 + str(R[0,2]) + " " \
-                 + str(R[1,0]) + " " \
-                 + str(R[1,1]) + " " \
-                 + str(R[1,2]) + " " \
-                 + str(R[2,0]) + " " \
-                 + str(R[2,1]) + " " \
-                 + str(R[2,2]) + "\n"
+            out_file.write(out_line)
+            out_file.write(calib_lines[colmap_image.camera_id])
 
-
-        out_file.write(out_line)
-        out_file.write(calib_lines[colmap_image.camera_id])
-
-        out_file.close()
+    print("Conversion done !")
 
 
-    print("DONE!")
+
+
+

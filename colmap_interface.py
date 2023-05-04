@@ -7,6 +7,7 @@ from shutil import copy
 from PyQt5 import QtCore
 import database_add_gps_from_dim2
 import colmap_write_kml_from_database
+import convert_colmap_poses_to_texrecon_dev
 import json
 
 
@@ -242,9 +243,26 @@ class Reconstruction:
             os.path.join(self.openMVS, 'ReconstructMesh.exe'),
             "-i", os.path.join(model_path, "dense.mvs"),
             "-o", os.path.join(model_path, "mesh.mvs"),
-            "-w", model_path
+            "-w", model_path,
+            "--constant-weight", str(0),
+            "-f", str(1),
         ]
         run_cmd(command)
+
+    def convert2texrecon(self, model_path):
+        convert_colmap_poses_to_texrecon_dev.colmap2texrecon(os.path.join(model_path, "sparse"), os.path.join(model_path, "images"))
+
+    def texrecon_texturing(self, model_path):
+        command = [
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), r"texrecon\texrecon"),
+            "--keep_unseen_faces",
+            os.path.join(model_path, "images"),
+            os.path.join(model_path, "mesh.ply"),
+            os.path.join(model_path, "textured_mesh")
+        ]
+        run_cmd(command)
+
+
 
     def refine_mesh(self, model_path):
         command = [
@@ -302,6 +320,7 @@ class Reconstruction:
         CC_utils.merge_models(model_list, offset_list, os.path.join(self.project_path, "export_merged.ply"))
         copy(os.path.join(self.models_path, model_ref, "reference_position.txt"),
              os.path.join(self.project_path, "reference_position.txt"))
+        return offset_list
 
     def sparse_reconstruction(self, param_feature_matching, cpu_features, vc, seq, spatial, thread=None):
         if thread is not None:
@@ -370,9 +389,11 @@ class Reconstruction:
                 self.refine_mesh(dense_model_path)
             if thread is not None:
                 thread.step.emit('texture')
-            self.texture_mesh(dense_model_path)
+            self.convert2texrecon(dense_model_path)
+            self.texrecon_texturing(dense_model_path)
 
-        if thread is not None:
+
+        """if thread is not None:
             thread.step.emit('merge')
         if len(list_models) != 1:
             offset_list = self.group_models(list_models)
@@ -391,4 +412,4 @@ class Reconstruction:
             json.dump(sfm, fp, sort_keys=True, indent=4)
 
         lat, long, alt = utils.read_reference(os.path.join(self.project_path, "reference_position.txt"))
-        colmap_write_kml_from_database.write_kml_file('export_merged.kml', 'export_merged.ply', lat, long, alt)
+        colmap_write_kml_from_database.write_kml_file('export_merged.kml', 'export_merged.ply', lat, long, alt)"""
