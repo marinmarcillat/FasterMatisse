@@ -392,7 +392,6 @@ class Reconstruction:
             self.convert2texrecon(dense_model_path)
             self.texrecon_texturing(dense_model_path)
 
-
         """if thread is not None:
             thread.step.emit('merge')
         if len(list_models) != 1:
