@@ -23,6 +23,10 @@ class Window(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         self.setupUi(self)
 
+        with open(r'UI/DarkOrange.qss', 'r', encoding='utf-8') as file:
+            qss = file.read()
+        self.setStyleSheet(qss)
+
         self.setGeometry(100, 100, 1600, 800)
         self.setWindowIcon(QtGui.QIcon('Logo-Ifremer.ico'))
         sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
