@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
 from colmap_interface import ReconstructionThread
 from main_ui import Ui_MainWindow
 
+
 class EmittingStream(QtCore.QObject):
     textWritten = QtCore.pyqtSignal(str)
 
@@ -15,6 +16,7 @@ class EmittingStream(QtCore.QObject):
 
     def flush(self):
         pass
+
 
 class Window(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
@@ -27,8 +29,9 @@ class Window(QMainWindow, Ui_MainWindow):
 
         self.connectActions()
 
-        self.active_pb = self.georeferencing_pb
+        self.active_pb = self.main_pb
 
+        self.reconstruction_thread = None
 
     def normalOutputWritten(self, text):
         """Append text to the QTextEdit."""
@@ -69,28 +72,18 @@ class Window(QMainWindow, Ui_MainWindow):
         label_dict = {
             'georegistration': self.georeferencing,
             'extraction': self.feature_extraction,
-            'matching' : self.feauture_matching,
-            'mapping' : self.sparse_reconstruction,
-            'dense' : self.dense_reconstruction,
-            'mesh' : self.mesh_reconstruction,
+            'matching': self.feauture_matching,
+            'mapping': self.sparse_reconstruction,
+            'dense': self.dense_reconstruction,
+            'mesh': self.mesh_reconstruction,
             'refinement': self.mesh_refinement,
             'texture': self.mesh_texturing,
-            'merge': self.merging_mesh
         }
         for key in label_dict:
             label_dict[key].setStyleSheet("QLabel {color : black; font-weight: roman}")
         label_dict[step].setStyleSheet("QLabel {color : green; font-weight: bold}")
 
-        if step == 'dense':
-            self.active_pb = self.mesh_pb
-        elif step == 'georegistration':
-            self.active_pb = self.georeferencing_pb
-
-
     def launch_reconstruction(self):
-        colmap_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),"COLMAP-3.8-windows-cuda")
-        openMVS_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),"OpenMVS_Windows_x64")
-
         image_path = self.image_dir.text()
         project_path = self.project_directory.text()
         db_path = self.database.text()
@@ -105,10 +98,11 @@ class Window(QMainWindow, Ui_MainWindow):
         refine = self.refine.isChecked()
         matching_neighbors = int(self.num_neighbors.text())
         skip_reconstruction = self.skip_reconstruction.isChecked()
-        options = [CPU_features, vocab_tree, seq, spatial, refine, matching_neighbors, skip_reconstruction]
+        texrecon_text = self.texrecon.isChecked()
+        options = [CPU_features, vocab_tree, seq, spatial, refine, matching_neighbors, texrecon_text, skip_reconstruction]
 
-        self.reconstruction_thread = ReconstructionThread(image_path, project_path, colmap_path, openMVS_path, db_path, camera, vocab_tree_path,
-                           nav_path, options)
+        self.reconstruction_thread = ReconstructionThread(self, image_path, project_path, db_path, camera,
+                                                          vocab_tree_path, nav_path, options)
         self.reconstruction_thread.prog_val.connect(self.set_prog)
         self.reconstruction_thread.step.connect(self.set_step)
         self.reconstruction_thread.nb_models.connect(self.set_nb_models)
@@ -116,7 +110,22 @@ class Window(QMainWindow, Ui_MainWindow):
         self.reconstruction_thread.start()
 
     def end_reconstruction(self):
-        print("end")
+        label_dict = {
+            'georegistration': self.georeferencing,
+            'extraction': self.feature_extraction,
+            'matching': self.feauture_matching,
+            'mapping': self.sparse_reconstruction,
+            'dense': self.dense_reconstruction,
+            'mesh': self.mesh_reconstruction,
+            'refinement': self.mesh_refinement,
+            'texture': self.mesh_texturing,
+        }
+
+        for value in label_dict.values():
+            value.setStyleSheet("QLabel {color : black; font-weight: roman}")
+
+        self.set_prog(0)
+        self.normalOutputWritten("Reconstruction ended \r")
 
 
 if __name__ == "__main__":

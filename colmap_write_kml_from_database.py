@@ -253,40 +253,37 @@ def extract_ref_nav_from_database(database_path):
 
 def write_kml_file(out_file_path, obj_file_name, lat, lon, alt):
 
-    out_kml_file = open(out_file_path, 'w')
+    with open(out_file_path, 'w') as out_kml_file:
+        lines = "<kml>" + "\n"
+        lines += "  <Placemark>" + "\n"
+        lines += f"    <name> {obj_file_name} </name>" + "\n"
+        lines += "    <Model>" + "\n"
+        lines += "      <altitudeMode>absolute</altitudeMode>" + "\n"
+        lines += "      <Location>" + "\n"
+        lines += f"        <longitude>{str(lon)}</longitude>" + "\n"
+        lines += f"        <latitude>{str(lat)}</latitude>" + "\n"
+        lines += f"        <altitude>{str(alt)}</altitude>" + "\n"
+        lines += "      </Location>" + "\n"
+        lines += "      <Orientation>" + "\n"
+        lines += "        <heading>0</heading>" + "\n"
+        lines += "        <tilt>0</tilt>" + "\n"
+        lines += "        <roll>0</roll>" + "\n"
+        lines += "      </Orientation>" + "\n"
+        lines += "      <Scale>" + "\n"
+        lines += "        <x>1</x>" + "\n"
+        lines += "        <y>1</y>" + "\n"
+        lines += "        <z>1</z>" + "\n"
+        lines += "      </Scale>" + "\n"
+        lines += "      <Link>" + "\n"
+        lines += f"        <href>{obj_file_name}</href>" + "\n"
+        lines += "      </Link>" + "\n"
+        lines += "    </Model>" + "\n"
+        lines += "  </Placemark>" + "\n"
+        lines += "</kml>" + "\n"
 
-    lines = "<kml>" + "\n"
-    lines += "  <Placemark>" + "\n"
-    lines += "    <name> " + obj_file_name + " </name>" + "\n"
-    lines += "    <Model>" + "\n"
-    lines += "      <altitudeMode>absolute</altitudeMode>" + "\n"
-    lines += "      <Location>" + "\n"
-    lines += "        <longitude>" + str(lon) + "</longitude>" + "\n"
-    lines += "        <latitude>" + str(lat) + "</latitude>" + "\n"
-    lines += "        <altitude>" + str(alt) + "</altitude>" + "\n"
-    lines += "      </Location>" + "\n"
-    lines += "      <Orientation>" + "\n"
-    lines += "        <heading>0</heading>" + "\n"
-    lines += "        <tilt>0</tilt>" + "\n"
-    lines += "        <roll>0</roll>" + "\n"
-    lines += "      </Orientation>" + "\n"
-    lines += "      <Scale>" + "\n"
-    lines += "        <x>1</x>" + "\n"
-    lines += "        <y>1</y>" + "\n"
-    lines += "        <z>1</z>" + "\n"
-    lines += "      </Scale>" + "\n"
-    lines += "      <Link>" + "\n"
-    lines += "        <href>" + obj_file_name + "</href>" + "\n"
-    lines += "      </Link>" + "\n"
-    lines += "    </Model>" + "\n"
-    lines += "  </Placemark>" + "\n"
-    lines += "</kml>" + "\n"
+        out_kml_file.write(lines)
 
-    out_kml_file.write(lines)
-
-    out_kml_file.close()
-
-    print("KML file : " + out_file_path + " is written!")
+    print(f"KML file : {out_file_path} is written!")
 
 
 if __name__ == "__main__":
