@@ -78,8 +78,8 @@
          <widget class="QScrollArea" name="scrollArea">
           <property name="minimumSize">
            <size>
-            <width>0</width>
-            <height>0</height>
+            <width>275</width>
+            <height>100</height>
            </size>
           </property>
           <property name="widgetResizable">
@@ -90,7 +90,7 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>259</width>
+             <width>273</width>
              <height>330</height>
             </rect>
            </property>

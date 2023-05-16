@@ -46,11 +46,13 @@ class ReconstructionThread(QtCore.QThread):
                 self.reconstruction()
             self.post_sparse_reconstruction()
             self.meshing()
+            self.export_models(self.texrecon_text)
 
         except RuntimeError:
             self.gui.normalOutputWritten("An error occurred")
-        self.end()
-
+        self.prog_val.emit(0)
+        self.finished.emit()
+        self.running = False
 
     def end(self):  # sourcery skip: raise-specific-error
         self.prog_val.emit(0)
@@ -110,15 +112,16 @@ class ReconstructionThread(QtCore.QThread):
 
         self.step.emit('matching')
         if self.vocab_tree:
-            self.run_cmd(self.colmap, ep.match_features_vocab_command(self.vocab_tree_path, self.db_path, self.matching_neighbors))
+            self.run_cmd(self.colmap,
+                         ep.match_features_vocab_command(self.vocab_tree_path, self.db_path, self.matching_neighbors))
         if self.seq:
-            self.run_cmd(self.colmap,ep.match_features_seq_command(self.db_path, self.matching_neighbors),)
+            self.run_cmd(self.colmap, ep.match_features_seq_command(self.db_path, self.matching_neighbors), )
         if self.spatial:
             self.run_cmd(self.colmap, ep.match_features_spatial_command(self.db_path))
         self.run_cmd(self.colmap, ep.match_features_transitive_command(self.db_path))
 
         self.step.emit('mapping')
-        self.run_cmd(self.colmap, ep.hierarchical_mapper_command(self.sparse_model_path, self.db_path,self.image_path))
+        self.run_cmd(self.colmap, ep.hierarchical_mapper_command(self.sparse_model_path, self.db_path, self.image_path))
 
     def post_sparse_reconstruction(self):
         list_models = next(os.walk(self.sparse_model_path))[1]
@@ -160,16 +163,15 @@ class ReconstructionThread(QtCore.QThread):
 
             self.step.emit('dense')
             self.run_cmd(os.path.join(self.openMVS, 'DensifyPointCloud.exe'),
-                                ep.dense_reconstruction_command(dense_model_path))
+                         ep.dense_reconstruction_command(dense_model_path))
 
             self.step.emit('mesh')
             self.run_cmd(os.path.join(self.openMVS, 'ReconstructMesh.exe'),
-                                ep.mesh_reconstruction_command(dense_model_path))
-
+                         ep.mesh_reconstruction_command(dense_model_path))
 
             if self.refine:
                 self.step.emit('refinement')
-                # if not self.run_cmd(self.colmap, ep.refine_mesh_command(dense_model_path)): return self.end()
+                self.gui.normalOutputWritten("Not available yet \r")
 
             self.step.emit('texture')
             if self.texrecon_text:
@@ -177,7 +179,8 @@ class ReconstructionThread(QtCore.QThread):
                                                                      os.path.join(dense_model_path, "images"))
                 self.run_cmd(self.texrecon, ep.texrecon_texturing_command(dense_model_path))
             else:
-                self.run_cmd(os.path.join(self.openMVS, 'TextureMesh.exe'), ep.openmvs_texturing_command(dense_model_path))
+                self.run_cmd(os.path.join(self.openMVS, 'TextureMesh.exe'),
+                             ep.openmvs_texturing_command(dense_model_path))
 
     def get_georegistration_file(self, model_path):
         filename = os.path.join(model_path, 'images.txt')
@@ -195,7 +198,8 @@ class ReconstructionThread(QtCore.QThread):
         with open(os.path.join(model_path, 'reference_position.txt'), 'w') as f:
             f.write(str(ref_position))
 
-    def export_models(self, list_models, obj = True):
+    def export_models(self, obj=True):
+        list_models = next(os.walk(self.models_path))[1]
         for model in tqdm(list_models):
             files2copy = [os.path.join(self.sparse_model_path, model, "reference_position.txt")]
             model_dir = os.path.join(self.models_path, model)
@@ -206,7 +210,7 @@ class ReconstructionThread(QtCore.QThread):
                 i = 0
                 while os.path.exists(os.path.join(model_dir, f'textured_mesh_material{str(i).zfill(4)}_map_Kd.png')):
                     files2copy.append(os.path.join(model_dir, f'textured_mesh_material{str(i).zfill(4)}_map_Kd.png'))
-                    i+=1
+                    i += 1
             else:
                 model_name = 'textured_mesh.ply'
                 files2copy.append(os.path.join(model_dir, model_name))
@@ -225,4 +229,5 @@ class ReconstructionThread(QtCore.QThread):
                 json.dump(sfm, fp, sort_keys=True, indent=4)
 
             lat, long, alt = colmap_write_kml_from_database.extract_ref_nav_from_database(self.db_path)
-            colmap_write_kml_from_database.write_kml_file(os.path.join(model_export_path, 'textured_mesh.kml'), model_name, lat, long, alt)
+            colmap_write_kml_from_database.write_kml_file(os.path.join(model_export_path, 'textured_mesh.kml'),
+                                                          model_name, lat, long, alt)
