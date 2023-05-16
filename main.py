@@ -27,7 +27,7 @@ class Window(QMainWindow, Ui_MainWindow):
             qss = file.read()
         self.setStyleSheet(qss)
 
-        self.setGeometry(100, 100, 1600, 800)
+        self.setGeometry(100, 100, 1200, 800)
         self.setWindowIcon(QtGui.QIcon('Logo-Ifremer.ico'))
         sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
 
@@ -84,7 +84,7 @@ class Window(QMainWindow, Ui_MainWindow):
             'texture': self.mesh_texturing,
         }
         for key in label_dict:
-            label_dict[key].setStyleSheet("QLabel {color : black; font-weight: roman}")
+            label_dict[key].setStyleSheet("QLabel {color : white; font-weight: roman}")
         label_dict[step].setStyleSheet("QLabel {color : green; font-weight: bold}")
 
     def launch_reconstruction(self):
@@ -126,7 +126,7 @@ class Window(QMainWindow, Ui_MainWindow):
         }
 
         for value in label_dict.values():
-            value.setStyleSheet("QLabel {color : black; font-weight: roman}")
+            value.setStyleSheet("QLabel {color : white; font-weight: roman}")
 
         self.set_prog(0)
         self.normalOutputWritten("Reconstruction ended \r")

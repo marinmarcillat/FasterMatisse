@@ -228,6 +228,6 @@ class ReconstructionThread(QtCore.QThread):
             with open(os.path.join(model_export_path, "sfm_data_temp.json"), 'w') as fp:
                 json.dump(sfm, fp, sort_keys=True, indent=4)
 
-            lat, long, alt = colmap_write_kml_from_database.extract_ref_nav_from_database(self.db_path)
+            lat, long, alt = utils.read_reference(os.path.join(model_export_path, "reference_position.txt"))
             colmap_write_kml_from_database.write_kml_file(os.path.join(model_export_path, 'textured_mesh.kml'),
                                                           model_name, lat, long, alt)
