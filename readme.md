@@ -1,9 +1,11 @@
 New installatio procedure ! 
 
 1: Download and launch the FasterMatisseSetup executable 
+
 2: Thats it !
 
 Download vocabulary tree from https://demuc.de/colmap/
+
 Camera config file exmaples in camera_examples
 
 Old way:
