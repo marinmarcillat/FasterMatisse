@@ -1,4 +1,4 @@
-New installatio procedure ! 
+New installation procedure ! 
 
 1: Download and launch the FasterMatisseSetup executable 
 
