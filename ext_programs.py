@@ -23,15 +23,15 @@ class command():
         self.running = True
 
     def handle_stderr(self):
-        print("err")
         data = self.p.readAllStandardError()
         stderr = bytes(data).decode("utf8", errors='ignore')
         self.debug.normalOutputWritten(stderr)
 
     def handle_error(self):
-        print("herr")
+        self.handle_stderr()
         self.error = True
         self.running = False
+        self.debug.normalOutputWritten("An error occurred \r")
 
     def handle_stdout(self):
         data = self.p.readAllStandardOutput()
