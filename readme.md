@@ -1,3 +1,14 @@
+New installation procedure ! 
+
+1: Download and launch the FasterMatisseSetup executable 
+
+2: Thats it !
+
+Download vocabulary tree from https://demuc.de/colmap/
+
+Camera config file exmaples in camera_examples
+
+Old way:
 Requires anaconda
 
 Open anaconda console (anaconda powershell prompt)
@@ -15,5 +26,3 @@ Launching
     conda activate FasterMatisse
     cd path/to/fastermatisse
     python main.py
-
-Download vocabulary tree from https://demuc.de/colmap/
