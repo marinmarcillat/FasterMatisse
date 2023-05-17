@@ -1,14 +1,15 @@
-New installation procedure ! 
+**New installation procedure !** 
 
-1: Download and launch the FasterMatisseSetup executable 
+1: Download (in the latest release) and launch the FasterMatisseSetup executable 
 
-2: Thats it !
+2: That's it !
+
+Camera config file exmaples in [camera_examples](camera_examples)
 
 Download vocabulary tree from https://demuc.de/colmap/
 
-Camera config file exmaples in camera_examples
+**Old way:**
 
-Old way:
 Requires anaconda
 
 Open anaconda console (anaconda powershell prompt)
