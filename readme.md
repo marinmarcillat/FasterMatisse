@@ -4,11 +4,15 @@
 
 2: That's it !
 
+**Configuration**
+
 Camera config file exmaples in [camera_examples](camera_examples)
+
+Camera parameter format: fx, fy, cx, cy, k1, k2, p1, p2
 
 Download vocabulary tree from https://demuc.de/colmap/
 
-**Old way:**
+**Old installation way:**
 
 Requires anaconda
 
