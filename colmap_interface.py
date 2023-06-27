@@ -1,4 +1,4 @@
-import os, json
+import os, json, shutil
 import configparser
 import utils
 from tqdm import tqdm
@@ -38,7 +38,7 @@ class ReconstructionThread(QtCore.QThread):
         self.dim2_path = nav_path
         self.nav = utils.load_dim2(nav_path)
 
-        self.CPU_features, self.vocab_tree, self.seq, self.spatial, self.refine, self.matching_neighbors, self.texrecon_text, self.skip_reconstruction = options
+        self.CPU_features, self.vocab_tree, self.seq, self.spatial, self.refine, self.matching_neighbors, self.two_view, self.img_scaling, self.decimation, self.skip_reconstruction = options
 
     def run(self):
         try:
@@ -121,7 +121,7 @@ class ReconstructionThread(QtCore.QThread):
         self.run_cmd(self.colmap, ep.match_features_transitive_command(self.db_path))
 
         self.step.emit('mapping')
-        self.run_cmd(self.colmap, ep.hierarchical_mapper_command(self.sparse_model_path, self.db_path, self.image_path))
+        self.run_cmd(self.colmap, ep.hierarchical_mapper_command(self.sparse_model_path, self.db_path, self.image_path, self.two_view))
 
     def post_sparse_reconstruction(self):
         list_models = next(os.walk(self.sparse_model_path))[1]
@@ -163,24 +163,22 @@ class ReconstructionThread(QtCore.QThread):
 
             self.step.emit('dense')
             self.run_cmd(os.path.join(self.openMVS, 'DensifyPointCloud.exe'),
-                         ep.dense_reconstruction_command(dense_model_path))
+                         ep.dense_reconstruction_command(dense_model_path, self.openMVS, self.two_view, self.img_scaling))
 
             self.step.emit('mesh')
             self.run_cmd(os.path.join(self.openMVS, 'ReconstructMesh.exe'),
-                         ep.mesh_reconstruction_command(dense_model_path))
+                         ep.mesh_reconstruction_command(dense_model_path, self.decimation))
 
             if self.refine:
                 self.step.emit('refinement')
                 self.gui.normalOutputWritten("Not available yet \r")
 
             self.step.emit('texture')
-            if self.texrecon_text:
-                convert_colmap_poses_to_texrecon_dev.colmap2texrecon(os.path.join(dense_model_path, "sparse"),
-                                                                     os.path.join(dense_model_path, "images"))
-                self.run_cmd(self.texrecon, ep.texrecon_texturing_command(dense_model_path))
-            else:
-                self.run_cmd(os.path.join(self.openMVS, 'TextureMesh.exe'),
-                             ep.openmvs_texturing_command(dense_model_path))
+            convert_colmap_poses_to_texrecon_dev.colmap2texrecon(os.path.join(dense_model_path, "sparse"),
+                                                                 os.path.join(dense_model_path, "images"))
+            self.run_cmd(self.texrecon, ep.texrecon_texturing_command(dense_model_path))
+
+            #self.run_cmd(os.path.join(self.openMVS, 'TextureMesh.exe'), ep.openmvs_texturing_command(dense_model_path))
 
     def get_georegistration_file(self, model_path):
         filename = os.path.join(model_path, 'images.txt')
@@ -231,3 +229,8 @@ class ReconstructionThread(QtCore.QThread):
             lat, long, alt = utils.read_reference(os.path.join(model_export_path, "reference_position.txt"))
             colmap_write_kml_from_database.write_kml_file(os.path.join(model_export_path, 'textured_mesh.kml'),
                                                           model_name, lat, long, alt)
+
+            self.gui.normalOutputWritten("Removing temporary folders \r")
+            rm = [self.models_path, self.sparse_model_path]
+            for fp in rm:
+                shutil.rmtree(fp)

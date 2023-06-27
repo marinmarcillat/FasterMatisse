@@ -102,8 +102,10 @@ class Window(QMainWindow, Ui_MainWindow):
         refine = self.refine.isChecked()
         matching_neighbors = int(self.num_neighbors.text())
         skip_reconstruction = self.skip_reconstruction.isChecked()
-        texrecon_text = self.texrecon.isChecked()
-        options = [CPU_features, vocab_tree, seq, spatial, refine, matching_neighbors, texrecon_text, skip_reconstruction]
+        two_view = self.two_view.isChecked()
+        img_scaling = int(self.img_scaling.value())
+        decimation = float(self.decimation.value())
+        options = [CPU_features, vocab_tree, seq, spatial, refine, matching_neighbors, two_view, img_scaling, decimation, skip_reconstruction]
 
         self.reconstruction_thread = ReconstructionThread(self, image_path, project_path, db_path, camera,
                                                           vocab_tree_path, nav_path, options)

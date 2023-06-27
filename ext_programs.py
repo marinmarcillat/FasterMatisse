@@ -90,13 +90,16 @@ def match_features_transitive_command(db_path):
     ]
 
 
-def hierarchical_mapper_command(sparse_model_path, db_path, image_path):
-    return [
+def hierarchical_mapper_command(sparse_model_path, db_path, image_path, two_view):
+    cmd = [
         "hierarchical_mapper",
         "--output_path", sparse_model_path,
         "--database_path", db_path,
-        "--image_path", image_path,
+        "--image_path", image_path
     ]
+    if two_view:
+        cmd.extend(["--Mapper.tri_ignore_two_view_tracks", "0"])
+    return cmd
 
 
 def model_aligner_command(model_path, db_path):
@@ -160,21 +163,33 @@ def interface_openmvs_command(model_path):
     ]
 
 
-def dense_reconstruction_command(model_path):
-    return [
+def dense_reconstruction_command(model_path, openMVS, two_view, img_scaling):
+    cmd = [
         "-i", os.path.join(model_path, "model.mvs"),
         "-o", os.path.join(model_path, "dense.mvs"),
-        "-w", model_path
+        "-w", model_path,
+        "--resolution-level", str(img_scaling)
     ]
+    if two_view:
+        densify_path = os.path.join(openMVS, "Densify.ini")
+        cmd.extend(["--number-views-fuse", "2", "--dense-config-file", str(densify_path)])
+
+        if not os.path.exists(densify_path):
+            with open(densify_path, 'w') as f:
+                f.write("Min Views Filter = 1")
+    return cmd
 
 
-def mesh_reconstruction_command(model_path):
+
+
+def mesh_reconstruction_command(model_path, decimation):
     return [
         "-i", os.path.join(model_path, "dense.mvs"),
         "-o", os.path.join(model_path, "mesh.mvs"),
         "-w", model_path,
         "--constant-weight", str(0),
         "-f", str(1),
+        "--decimate", str(decimation)
     ]
 
 
