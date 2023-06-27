@@ -1,33 +1,38 @@
-**New installation procedure !** 
+# Faster matisse
 
-1: Download (in the latest release) and launch the FasterMatisseSetup executable 
+FasterMatisse is a photogrammetry software specifically dedicated to 3D model reconstruction in underwater environments.
+It's based on Ifremer's Matisse3D but replaces openMVG by Colmap for sparse reconstruction.
 
-2: That's it !
+It requires an Nvidia GPU with cuda installed. 
 
-**Configuration**
+You can find the latest release [here](https://github.com/marinmarcillat/FasterMatisse/releases). 
 
-Camera config file exmaples in [camera_examples](camera_examples)
+## Configuration
 
-Camera parameter format: fx, fy, cx, cy, k1, k2, p1, p2
+Required navigation file is a dim2 format, see [Matisse3D documentation](https://github.com/IfremerUnderwater/Matisse/blob/master/Deploy/help/MatisseHelp_EN.pdf)
+
+Camera config file examples in [camera_examples](camera_examples)
+
+Camera parameter format: fx, fy, cx, cy, k1, k2, p1, p2 (OPENCV model). More info [here](https://github.com/colmap/colmap/blob/master/src/base/camera_models.h).
 
 Download vocabulary tree from https://demuc.de/colmap/
 
-**Old installation way:**
+
+## Old installation way:
 
 Requires anaconda
 
 Open anaconda console (anaconda powershell prompt)
 
-installing the conda env:
+Installing the conda env:
 
-    conda create --name FasterMatisse python=3.10 -y
-    conda activate FasterMatisse
-    conda config --add channels conda-forge
-    conda config --set channel_priority strict
-    conda install "boost=1.74" "cgal=5.4" cmake ffmpeg "gdal=3.5" laszip "matplotlib=3.5" "mysql=8.0" "numpy=1.22" "opencv=4.5" "openmp=8.0" "pcl=1.12" "pdal=2.4" "psutil=5.9" pybind11 "qhull=2020.2" "qt=5.15.4" "scipy=1.8" sphinx_rtd_theme tbb tbb-devel "xerces-c=3.2" geopy tqdm pyqt pandas -y
+    cd path/to/fastermatisse
+    conda env create -f environment.yml
 
 Launching
 
     conda activate FasterMatisse
     cd path/to/fastermatisse
     python main.py
+
+
