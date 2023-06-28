@@ -46,7 +46,7 @@ class ReconstructionThread(QtCore.QThread):
                 self.reconstruction()
             self.post_sparse_reconstruction()
             self.meshing()
-            self.export_models(self.texrecon_text)
+            self.export_models()
 
         except RuntimeError:
             self.gui.normalOutputWritten("An error occurred")
