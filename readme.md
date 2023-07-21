@@ -9,6 +9,12 @@ You can find the latest release [here](https://github.com/marinmarcillat/FasterM
 
 ## Configuration
 
+CUDA GPU with CUDA <= 11.6 required. [Link to Nvidia](https://developer.nvidia.com/cuda-11-6-0-download-archive)
+
+-> check your cuda version with the command
+
+    nvidia-smi
+
 Required navigation file is a dim2 format, see [Matisse3D documentation](https://github.com/IfremerUnderwater/Matisse/blob/master/Deploy/help/MatisseHelp_EN.pdf)
 
 Camera config file examples in [camera_examples](camera_examples)
@@ -16,6 +22,8 @@ Camera config file examples in [camera_examples](camera_examples)
 Camera parameter format: fx, fy, cx, cy, k1, k2, p1, p2 (OPENCV model). More info [here](https://github.com/colmap/colmap/blob/master/src/base/camera_models.h).
 
 Download vocabulary tree from https://demuc.de/colmap/
+
+
 
 
 ## Old installation way:

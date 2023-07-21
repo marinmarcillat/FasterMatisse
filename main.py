@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, time
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import (
@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import (
 )
 from colmap_interface import ReconstructionThread
 from main_ui import Ui_MainWindow
+from sleep import WindowsInhibitor
 
 
 class EmittingStream(QtCore.QObject):
@@ -28,7 +29,12 @@ class Window(QMainWindow, Ui_MainWindow):
         self.setStyleSheet(qss)
 
         self.setGeometry(100, 100, 1200, 800)
+
+        osSleep = WindowsInhibitor()
+        osSleep.inhibit()
+
         self.setWindowIcon(QtGui.QIcon('Logo-Ifremer.ico'))
+        self.log_path = f'log_{int(time.time())}.txt'
         sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
 
         self.connectActions()
@@ -39,6 +45,9 @@ class Window(QMainWindow, Ui_MainWindow):
 
     def normalOutputWritten(self, text):
         """Append text to the QTextEdit."""
+        with open(self.log_path, 'a') as f:
+            f.write(text)
+
         cursor = self.log.textCursor()
         cursor.movePosition(QtGui.QTextCursor.End)
         cursor.insertText(text)
